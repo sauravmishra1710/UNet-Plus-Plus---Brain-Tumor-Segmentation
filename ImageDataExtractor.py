@@ -7,6 +7,13 @@ from tqdm import tqdm
 
 class ImageDataExtractor():
     
+    """
+    A utility class to read the *.mat files that are saved in the matlab format
+    and extract the image data that is stored as part of the file.
+    The image and the corresponding tumor mask are stored as part of the fields 
+    cjdata.image & cjdata.tumorMask.
+    
+    """
     
     def __init__(self, mat_data_path, img_data_path, mask_data_path):
         
@@ -33,6 +40,9 @@ class ImageDataExtractor():
         file = h5py.File(filePath, 'r')
 
         imgData = dict()
+        
+        # the image and the corresponding mask are stored as part of the fields - 
+        # cjdata.image & cjdata.tumorMask
         imgData['image'] = np.array(file.get('cjdata/image'))
         imgData['mask'] = np.array(file.get('cjdata/tumorMask'))
 
@@ -51,6 +61,9 @@ class ImageDataExtractor():
             None
 
         """
+        
+        # create the directory/folder if it is not already 
+        # present int he specified path.
         if not (os.path.isdir(target_dir)):
             os.mkdir(target_dir)
 
@@ -91,15 +104,21 @@ class ImageDataExtractor():
 
         """
         
+        # create the directory/folder if it is not already 
+        # present int he specified path.
         self.__create_dir(self.IMG_DATA_PATH)
         self.__create_dir(self.MASK_DATA_PATH)
         
+        # extract the .mat files into a list.
         files = glob.glob(self.MAT_DATA_PATH + '\*.mat')
         
         for idx in  tqdm(range(1, len(files) + 1)):
+            
             file = files[idx]
             
-            # extract the filename
+            # extract the filename to be used to save the 
+            # image and its mask.
             filename = os.path.splitext(os.path.basename(file))[0]
+            
             data = self.__readMatData(file)
             self.__save_image_data(filename, data)
