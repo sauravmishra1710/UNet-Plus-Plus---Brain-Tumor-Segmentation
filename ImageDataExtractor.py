@@ -17,9 +17,9 @@ class ImageDataExtractor():
     
     def __init__(self, mat_data_path, img_data_path, mask_data_path):
         
-        self.MAT_DATA_PATH = mat_data_path
-        self.IMG_DATA_PATH = img_data_path
-        self.MASK_DATA_PATH = mask_data_path
+        self.__MAT_DATA_PATH = mat_data_path
+        self.__IMG_DATA_PATH = img_data_path
+        self.__MASK_DATA_PATH = mask_data_path
     
     def __readMatData(self, filePath: str):
     
@@ -84,8 +84,8 @@ class ImageDataExtractor():
 
         """
 
-        img_path = os.path.join(self.IMG_DATA_PATH, filename + '.' + imgFormat)
-        mask_path = os.path.join(self.MASK_DATA_PATH, filename + '.' + imgFormat)
+        img_path = os.path.join(self.__IMG_DATA_PATH, filename + '.' + imgFormat)
+        mask_path = os.path.join(self.__MASK_DATA_PATH, filename + '.' + imgFormat)
         
         mpimg.imsave(img_path, data['image'], cmap = 'gray', format = imgFormat)
         mpimg.imsave(mask_path, data['mask'], cmap = 'gray', format = imgFormat)
@@ -106,11 +106,11 @@ class ImageDataExtractor():
         
         # create the directory/folder if it is not already 
         # present int he specified path.
-        self.__create_dir(self.IMG_DATA_PATH)
-        self.__create_dir(self.MASK_DATA_PATH)
+        self.__create_dir(self.__IMG_DATA_PATH)
+        self.__create_dir(self.__MASK_DATA_PATH)
         
         # extract the .mat files into a list.
-        files = glob.glob(self.MAT_DATA_PATH + '\*.mat')
+        files = glob.glob(self.__MAT_DATA_PATH + '\*.mat')
         
         for idx in  tqdm(range(1, len(files) + 1)):
             
