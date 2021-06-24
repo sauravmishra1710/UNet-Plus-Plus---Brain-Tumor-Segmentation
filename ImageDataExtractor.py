@@ -5,19 +5,14 @@ import numpy as np
 import matplotlib.image as mpimg
 from tqdm import tqdm
 
-
-
-
-
-
-
-class ImageData():
+class ImageDataExtractor():
     
     
-    def __init__(self):
-        self.MAT_DATA_PATH = 'brainTumorData\matData'
-        self.IMG_DATA_PATH = 'brainTumorData\imgData\img'
-        self.MASK_DATA_PATH = 'brainTumorData\imgData\mask'
+    def __init__(self, mat_data_path, img_data_path, mask_data_path):
+        
+        self.MAT_DATA_PATH = mat_data_path
+        self.IMG_DATA_PATH = img_data_path
+        self.MASK_DATA_PATH = mask_data_path
     
     def __readMatData(self, filePath: str):
     
@@ -46,7 +41,8 @@ class ImageData():
     def __create_dir(self, target_dir):
 
         """
-        Creates folder if there is no folder in the specified path.
+        Creates folder if there is no folder in the 
+        specified directory path.
 
         Args: 
             target_folder(str): path of the folder which needs to be created.
@@ -58,7 +54,7 @@ class ImageData():
         if not (os.path.isdir(target_dir)):
             os.mkdir(target_dir)
 
-    def __save_image_data(self, filename, data):
+    def __save_image_data(self, filename, data, imgFormat = 'png'):
 
         """ 
         Saves the image & mask array in png format.
@@ -75,15 +71,17 @@ class ImageData():
 
         """
 
-        path_image = os.path.join(self.IMG_DATA_PATH, filename + '.png')
-        path_mask = os.path.join(self.MASK_DATA_PATH, filename + '_mask.png')
-        mpimg.imsave(path_image, data['image'], cmap = 'gray', format = 'png')
-        mpimg.imsave(path_mask, data['mask'], cmap = 'gray', format = 'png')
+        img_path = os.path.join(self.IMG_DATA_PATH, filename + '.' + imgFormat)
+        mask_path = os.path.join(self.MASK_DATA_PATH, filename + '.' + imgFormat)
         
-    def __extractAndSaveImages(self):
+        mpimg.imsave(img_path, data['image'], cmap = 'gray', format = imgFormat)
+        mpimg.imsave(mask_path, data['mask'], cmap = 'gray', format = imgFormat)
+        
+    def extractAndSaveImages(self):
         
         """ 
-        Saves the image & mask array in png format.
+        Extracts the image data from the corresponding .mat files and
+        saves the extracted image & mask array in png format.
 
         Args:
             None
@@ -96,9 +94,12 @@ class ImageData():
         self.__create_dir(self.IMG_DATA_PATH)
         self.__create_dir(self.MASK_DATA_PATH)
         
-        files = glob.glob(MAT_DATA_PATH + '\*.mat')
+        files = glob.glob(self.MAT_DATA_PATH + '\*.mat')
+        
         for idx in  tqdm(range(1, len(files) + 1)):
             file = files[idx]
+            
+            # extract the filename
             filename = os.path.splitext(os.path.basename(file))[0]
-            data = self.readMatData(file)
-            self.save_image_data(filename, data)
+            data = self.__readMatData(file)
+            self.__save_image_data(filename, data)
