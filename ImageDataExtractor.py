@@ -112,7 +112,7 @@ class ImageDataExtractor():
         # extract the .mat files into a list.
         files = glob.glob(self.__MAT_DATA_PATH + '\*.mat')
         
-        for idx in  tqdm(range(1, len(files) + 1)):
+        for idx in  tqdm(range(len(files))):
             
             file = files[idx]
             
