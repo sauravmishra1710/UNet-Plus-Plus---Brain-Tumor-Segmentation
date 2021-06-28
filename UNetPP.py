@@ -169,12 +169,12 @@ class UNetPlusPlus():
         x = Conv2D(filters = filters, kernel_size = kernel_size, activation = tf.nn.relu, 
                    padding = 'same', name = 'conv' + block_level + '_1')(input_tensor)
 
-        x = Dropout(rate = 0.5, name = 'dp' + block_level + '_1')(x)
+        x = Dropout(rate = 0.5, name = 'X' + block_level + '_')(x)
 
         x = Conv2D(filters = filters, kernel_size = kernel_size, activation = tf.nn.relu, 
                    padding = 'same', name = 'conv' + block_level + '_2')(x)
 
-        x = Dropout(rate = 0.5, name = 'dp' + block_level + '_2')(x)
+        x = Dropout(rate = 0.5, name = 'X' + block_level)(x)
 
         return x
 
@@ -199,12 +199,12 @@ class UNetPlusPlus():
         x = Conv2D(filters = filters, kernel_size = kernel_size, activation = tf.nn.relu, 
                    padding = 'same', name = 'conv' + block_level + '_1')(input_tensor)
 
-        x = Dropout(rate = 0.5, name = 'dp' + block_level + '_1')(x)
+        x = Dropout(rate = 0.5, name = 'X' + block_level + '_')(x)
 
         x = Conv2D(filters = filters, kernel_size = kernel_size, activation = tf.nn.relu, 
                    padding = 'same', name = 'conv' + block_level + '_2')(x)
 
-        x = Dropout(rate = 0.5, name = 'dp' + block_level + '_2')(x)
+        x = Dropout(rate = 0.5, name = 'X' + block_level)(x)
 
         return x
     
