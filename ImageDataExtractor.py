@@ -1,4 +1,5 @@
 import os
+import stat
 import h5py
 import glob
 import shutil
@@ -24,10 +25,11 @@ class ImageDataExtractor():
         self.__MAT_DATA_PATH = 'data\\matData'
         self.__IMG_DATA_PATH = 'data\\imgData\\img'
         self.__MASK_DATA_PATH = 'data\\imgData\\mask'
-        self.__ZIP_FILE = 'data\\1512427.zip'
-        self.__TEMP_ZIP_FILE = self.__ZIP_FILE + '__'
-        self.__TEMP_DOWNLOAD_PATH = 'data\\temp'
-        self.__TEMP_UNZIP_PATH = 'data\\temp\\unzip'
+        self.__TEMP_DOWNLOAD_PATH = os.path.join(self.__DATA, 'temp')
+        self.__ZIP_FILE = os.path.join(self.__TEMP_DOWNLOAD_PATH, '1512427.zip')
+        self.__TEMP_ZIP_FILE = os.path.join(os.path.split(self.__ZIP_FILE)[0], 
+                                            os.path.splitext(os.path.basename(self.__ZIP_FILE))[0] + '__.zip')
+        self.__TEMP_UNZIP_PATH = os.path.join(self.__TEMP_DOWNLOAD_PATH, 'unzip')
         self.__DATA_URL = 'https://ndownloader.figshare.com/articles/1512427/versions/5'
         
         # if the master 'data' folder is not present
@@ -42,6 +44,8 @@ class ImageDataExtractor():
         # if the temp data unzip folder is not present, create it
         if not (os.path.isdir(self.__TEMP_UNZIP_PATH)):
             self.__create_dir(self.__TEMP_UNZIP_PATH)
+        
+        os.chmod(self.__DATA, 0o777);
     
     def __readMatData(self, filePath: str):
     
@@ -87,7 +91,7 @@ class ImageDataExtractor():
         # create the directory/folder if it is not already 
         # present in the specified path.
         if not (os.path.isdir(target_dir)):
-            os.makedirs(target_dir, exist_ok = True, mode=0o777)
+            os.mkdir(target_dir)
 
     def __save_image_data(self, filename, data, imgFormat = 'png'):
 
@@ -179,14 +183,13 @@ class ImageDataExtractor():
 
         # Delete the incomplete downloads from previous sessions.
         if os.path.isfile(self.__TEMP_ZIP_FILE):
-            print('>>> Deleted any incomplete downloaded file from previous session...')
+            print('>>> Deleting any incomplete downloaded file from previous session...')
             os.remove(self.__TEMP_ZIP_FILE)
 
         # Download the file
         print(">>> Starting Download...")
         response = requests.get(self.__DATA_URL, stream = True)
-        handle = open(self.__TEMP_DOWNLOAD_PATH, "wb")
-        with open(self.__TEMP_DOWNLOAD_PATH, "wb") as handle:
+        with open(self.__TEMP_ZIP_FILE, "wb") as handle:
 
             total_size = round(int(response.headers['Content-Length']), 3)
             pbar = tqdm(unit = "B", total = total_size)
