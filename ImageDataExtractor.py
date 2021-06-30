@@ -9,6 +9,7 @@ import numpy as np
 from pathlib import Path
 from tqdm import notebook
 import matplotlib.image as mpimg
+from os.path import dirname as up
 
 class ImageDataExtractor():
     
@@ -20,19 +21,34 @@ class ImageDataExtractor():
     
     """
     
-    def __init__(self):
+    def __init__(self, RemoveTemporaryFiles = True):
+        
+        """
+        A utility class to download, organize and read the *.mat files that are saved in the matlab format, 
+        extract the image data that is stored as part of the file.
+        The image and the corresponding tumor mask are stored as part of the fields 
+        cjdata.image & cjdata.tumorMask.
+        
+        Args:
+            RemoveTemporaryFiles (boolean): A flag to check if the downloaded files have 
+                                            to be retained or deleted after the image and masks
+                                            have been extracted. Default Value - True (delete the
+                                            temp files)
+
+        """
         
         self.__DATA = 'data'
-        self.__MAT_DATA_PATH = 'data\\matData'
-        self.__IMG_DATA_PATH = 'data\\imgData\\img'
-        self.__MASK_DATA_PATH = 'data\\imgData\\mask'
-        self.__TEMP_DOWNLOAD_PATH = os.path.join(self.__DATA, 'temp\\download')
+        self.__MAT_DATA_PATH = os.path.join(self.__DATA, 'matData')
+        self.__IMG_DATA_PATH = os.path.join(self.__DATA, 'imgData', 'img')
+        self.__MASK_DATA_PATH = os.path.join(self.__DATA, 'imgData', 'mask')
+        self.__TEMP_DOWNLOAD_PATH = os.path.join(self.__DATA, 'temp', 'download')
         self.__ZIP_FILE = os.path.join(self.__TEMP_DOWNLOAD_PATH, '1512427.zip')
         self.__TEMP_ZIP_FILE = os.path.join(os.path.split(self.__ZIP_FILE)[0], 
                                             os.path.splitext(os.path.basename(self.__ZIP_FILE))[0] + '__.zip')
-        self.__TEMP_UNZIP_PATH = os.path.join(Path(self.__TEMP_DOWNLOAD_PATH).parent.name, 'unzip')
+        self.__TEMP_UNZIP_PATH = os.path.join(up(self.__TEMP_DOWNLOAD_PATH), 'unzip')
         self.__DATA_URL = 'https://ndownloader.figshare.com/articles/1512427/versions/5'
-        self.README_PATH = os.path.join(self.__DATA, 'README.txt')
+        self.__DATA_README_PATH = os.path.join(self.__DATA, 'README.txt')
+        self.__REMOVE_TEMP_FILES = RemoveTemporaryFiles
         
         # if the master 'data' folder is not present
         # create the directory and proceed.
@@ -133,11 +149,13 @@ class ImageDataExtractor():
         
         # check if the data is already extracted. check the relevant directories are created or not.
         if os.path.isdir(self.__MAT_DATA_PATH) and os.path.isdir(self.__IMG_DATA_PATH) and os.path.isdir(self.__MASK_DATA_PATH):
-            print(">>> Data already downloaded. Check the following directoies - ")
+            print(">>> Data already downloaded. Check the following directoies")
+            print("-----------------------------------------------------------")
             print(">>> Mat files located @ " + "'" + self.__MAT_DATA_PATH + "'")
             print(">>> Image files located @ " + "'" + self.__IMG_DATA_PATH + "'")
             print(">>> Mask files located @ " + "'" + self.__MASK_DATA_PATH + "'")
-            return
+            print(">>> Data ReadMe located @ " + "'" + self.__DATA_README_PATH + "'")
+            return self.__MAT_DATA_PATH, self.__IMG_DATA_PATH, self.__MASK_DATA_PATH, self.__DATA_README_PATH
         
         # download & unzip the data if not present.
         if not (os.path.isdir(self.__MAT_DATA_PATH)):
@@ -169,9 +187,26 @@ class ImageDataExtractor():
 
             print(">>> Data extraction complete...")
         
+        # remove the files only if the flag is set
+        if self.__REMOVE_TEMP_FILES:
             print(">>> Removing the master zip file...")
             if os.path.isfile(self.__ZIP_FILE):
                 os.remove(self.__ZIP_FILE)
+
+            # delete the temp folder @ temp_unzip_path
+            if (os.path.isdir(self.__TEMP_UNZIP_PATH)):
+                print(">>> Removing the temp folder created for download..." + "'" + self.__TEMP_DOWNLOAD_PATH + "'")
+                shutil.rmtree(up(self.__TEMP_DOWNLOAD_PATH))
+        
+        print("\n>>> Data loaded into the following directoies")
+        print("-----------------------------------------------")
+        print(">>> Mat files located @ " + "'" + self.__MAT_DATA_PATH + "'")
+        print(">>> Image files located @ " + "'" + self.__IMG_DATA_PATH + "'")
+        print(">>> Mask files located @ " + "'" + self.__MASK_DATA_PATH + "'")
+        print(">>> Data ReadMe located @ " + "'" + self.__DATA_README_PATH + "'")
+            
+        # return the data directories path to the caller.
+        return self.__MAT_DATA_PATH, self.__IMG_DATA_PATH, self.__MASK_DATA_PATH, self.__DATA_README_PATH
             
     def __downloadData(self, chunk_size = 1024):
     
@@ -241,15 +276,15 @@ class ImageDataExtractor():
                     _zip.extractall(self.__MAT_DATA_PATH)
         
         # copy the data readme file to the data folder.
-        readMeDestination = os.path.split(self.__MAT_DATA_PATH)[0]
+        readMeDestination = self.__DATA
         readMeFileName = os.path.split('data\\temp\\unzip\\README.txt')[1]
-        print(">>> Copying the data ReadMe file to - " + "'\\" + os.path.join(readMeDestination, readMeFileName) + "'")
+        
+        # set the data readme path to return to the caller.
+        self.__DATA_README_PATH = os.path.join(readMeDestination, readMeFileName)
+        print(">>> Copying the data ReadMe file to - " + "'\\" + self.__DATA_README_PATH + "'")
         readMe = glob.glob(self.__TEMP_UNZIP_PATH + '\*.txt')
+        
+        # copy the readme file to the data folder.
         shutil.copy2(readMe[0], readMeDestination)
         
         print(">>> Data unzipped successfully to " + "'" + self.__MAT_DATA_PATH + "'")
-        # delete the temp folder @ temp_unzip_path
-        if (os.path.isdir(self.__TEMP_UNZIP_PATH)):
-            print(">>> Removing the temp download folder..." + "'" + self.__TEMP_DOWNLOAD_PATH + "'")
-            shutil.rmtree(self.__TEMP_DOWNLOAD_PATH)
-            
