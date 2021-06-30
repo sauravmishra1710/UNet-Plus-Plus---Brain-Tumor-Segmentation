@@ -6,7 +6,8 @@ import shutil
 import zipfile
 import requests
 import numpy as np
-from tqdm import tqdm
+from pathlib import Path
+from tqdm import notebook
 import matplotlib.image as mpimg
 
 class ImageDataExtractor():
@@ -25,12 +26,13 @@ class ImageDataExtractor():
         self.__MAT_DATA_PATH = 'data\\matData'
         self.__IMG_DATA_PATH = 'data\\imgData\\img'
         self.__MASK_DATA_PATH = 'data\\imgData\\mask'
-        self.__TEMP_DOWNLOAD_PATH = os.path.join(self.__DATA, 'temp')
+        self.__TEMP_DOWNLOAD_PATH = os.path.join(self.__DATA, 'temp\\download')
         self.__ZIP_FILE = os.path.join(self.__TEMP_DOWNLOAD_PATH, '1512427.zip')
         self.__TEMP_ZIP_FILE = os.path.join(os.path.split(self.__ZIP_FILE)[0], 
                                             os.path.splitext(os.path.basename(self.__ZIP_FILE))[0] + '__.zip')
-        self.__TEMP_UNZIP_PATH = os.path.join(self.__TEMP_DOWNLOAD_PATH, 'unzip')
+        self.__TEMP_UNZIP_PATH = os.path.join(Path(self.__TEMP_DOWNLOAD_PATH).parent.name, 'unzip')
         self.__DATA_URL = 'https://ndownloader.figshare.com/articles/1512427/versions/5'
+        self.README_PATH = os.path.join(self.__DATA, 'README.txt')
         
         # if the master 'data' folder is not present
         # create the directory and proceed.
@@ -45,7 +47,6 @@ class ImageDataExtractor():
         if not (os.path.isdir(self.__TEMP_UNZIP_PATH)):
             self.__create_dir(self.__TEMP_UNZIP_PATH)
         
-        os.chmod(self.__DATA, 0o777);
     
     def __readMatData(self, filePath: str):
     
@@ -91,7 +92,7 @@ class ImageDataExtractor():
         # create the directory/folder if it is not already 
         # present in the specified path.
         if not (os.path.isdir(target_dir)):
-            os.mkdir(target_dir)
+            os.makedirs(target_dir, exist_ok = True)
 
     def __save_image_data(self, filename, data, imgFormat = 'png'):
 
@@ -130,38 +131,47 @@ class ImageDataExtractor():
 
         """ 
         
-        # download the data
-        self.__downloadData()
+        # check if the data is already extracted. check the relevant directories are created or not.
+        if os.path.isdir(self.__MAT_DATA_PATH) and os.path.isdir(self.__IMG_DATA_PATH) and os.path.isdir(self.__MASK_DATA_PATH):
+            print(">>> Data already downloaded. Check the following directoies - ")
+            print(">>> Mat files located @ " + "'" + self.__MAT_DATA_PATH + "'")
+            print(">>> Image files located @ " + "'" + self.__IMG_DATA_PATH + "'")
+            print(">>> Mask files located @ " + "'" + self.__MASK_DATA_PATH + "'")
+            return
         
-        # unzip the downloaded data
-        self.__upzipData()
+        # download & unzip the data if not present.
+        if not (os.path.isdir(self.__MAT_DATA_PATH)):
+            self.__downloadData()
+            self.__upzipData()
         
-        # create the directory/folder if it is not already 
-        # present int he specified path.
-        self.__create_dir(self.__IMG_DATA_PATH)
-        self.__create_dir(self.__MASK_DATA_PATH)
+        # extract the image amd the corresponding mask data.
+        if not (os.path.isdir(self.__IMG_DATA_PATH) and os.path.isdir(self.__MASK_DATA_PATH)):
+            # create the directory/folder if it is not already 
+            # present in the specified path.
+            self.__create_dir(self.__IMG_DATA_PATH)
+            self.__create_dir(self.__MASK_DATA_PATH)
+
+            # extract the .mat files into a list.
+            files = glob.glob(self.__MAT_DATA_PATH + '\*.mat')
+
+            print(">>> Extracting images and masks...")
+
+            for idx in  notebook.tqdm(range(len(files))):
+
+                file = files[idx]
+
+                # extract the filename to be used to save the 
+                # image and its mask.
+                filename = os.path.splitext(os.path.basename(file))[0]
+
+                data = self.__readMatData(file)
+                self.__save_image_data(filename, data)
+
+            print(">>> Data extraction complete...")
         
-        # extract the .mat files into a list.
-        files = glob.glob(self.__MAT_DATA_PATH + '\*.mat')
-        
-        print(">>> Extracting images and masks...")
-        
-        for idx in  tqdm(range(len(files))):
-            
-            file = files[idx]
-            
-            # extract the filename to be used to save the 
-            # image and its mask.
-            filename = os.path.splitext(os.path.basename(file))[0]
-            
-            data = self.__readMatData(file)
-            self.__save_image_data(filename, data)
-            
-        print(">>> Data extraction complete...")
-        
-        print(">>> Removing the master zip file...")
-        if os.path.isfile(self.__ZIP_FILE):
-            os.remove(self.__ZIP_FILE)
+            print(">>> Removing the master zip file...")
+            if os.path.isfile(self.__ZIP_FILE):
+                os.remove(self.__ZIP_FILE)
             
     def __downloadData(self, chunk_size = 1024):
     
@@ -176,23 +186,18 @@ class ImageDataExtractor():
 
         """
 
-        # Check if file is already downloaded.
-        if os.path.isfile(self.__ZIP_FILE):
-            print(">>> Data already downloaded. Data location @ " + self.__ZIP_FILE)
-            return
-
         # Delete the incomplete downloads from previous sessions.
         if os.path.isfile(self.__TEMP_ZIP_FILE):
-            print('>>> Deleting any incomplete downloaded file from previous session...')
+            print('>>> Deleting any incomplete downloaded file from previous session @ ' + self.__TEMP_ZIP_FILE)
             os.remove(self.__TEMP_ZIP_FILE)
 
         # Download the file
-        print(">>> Starting Download...")
+        print(">>> Downloading data to - " + "'" + self.__TEMP_ZIP_FILE + "'")
         response = requests.get(self.__DATA_URL, stream = True)
         with open(self.__TEMP_ZIP_FILE, "wb") as handle:
 
             total_size = round(int(response.headers['Content-Length']), 3)
-            pbar = tqdm(unit = "B", total = total_size)
+            pbar = notebook.tqdm(unit = "B", total = total_size)
             for chunk in response.iter_content(chunk_size = chunk_size):
                 if chunk:  # filter out keep-alive new chunks
                     handle.write(chunk)
@@ -200,7 +205,7 @@ class ImageDataExtractor():
 
         # Rename the file to the correct name 
         # once download is complete.
-        os.rename(self.__TEMP_DOWNLOAD_PATH, self.__ZIP_FILE)
+        os.rename(self.__TEMP_ZIP_FILE, self.__ZIP_FILE)
         print(">>> Download Complete...")
         
     def __upzipData(self):
@@ -221,7 +226,7 @@ class ImageDataExtractor():
 
         # extract the master zipped file.
         print(">>> Extracting Master Folder...")
-        for idx in  tqdm(range(1)):
+        for idx in  notebook.tqdm(range(1)):
             with zipfile.ZipFile(self.__ZIP_FILE, "r") as _zip:
                 _zip.extractall(self.__TEMP_UNZIP_PATH)
 
@@ -231,7 +236,7 @@ class ImageDataExtractor():
         self.__create_dir(self.__MAT_DATA_PATH)
 
         # exract the mat files from the respective zipped files.
-        for idx in  tqdm(range(len(files))):
+        for idx in  notebook.tqdm(range(len(files))):
                 with zipfile.ZipFile(files[idx], "r") as _zip:
                     _zip.extractall(self.__MAT_DATA_PATH)
         
@@ -241,9 +246,10 @@ class ImageDataExtractor():
         print(">>> Copying the data ReadMe file to - " + "'\\" + os.path.join(readMeDestination, readMeFileName) + "'")
         readMe = glob.glob(self.__TEMP_UNZIP_PATH + '\*.txt')
         shutil.copy2(readMe[0], readMeDestination)
-                    
+        
+        print(">>> Data unzipped successfully to " + "'" + self.__MAT_DATA_PATH + "'")
         # delete the temp folder @ temp_unzip_path
         if (os.path.isdir(self.__TEMP_UNZIP_PATH)):
-            print(">>> Removing the temp download folder...")
+            print(">>> Removing the temp download folder..." + "'" + self.__TEMP_DOWNLOAD_PATH + "'")
             shutil.rmtree(self.__TEMP_DOWNLOAD_PATH)
             
