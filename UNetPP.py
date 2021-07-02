@@ -1,5 +1,7 @@
+import numpy as np
 import tensorflow as tf
 import tensorflow.keras
+from tensorflow.keras import backend as K
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Conv2D, Dense, concatenate, Conv2DTranspose
 from tensorflow.keras.layers import MaxPooling2D, Dropout, Activation, BatchNormalization
@@ -56,6 +58,7 @@ class UNetPlusPlus():
         self.__filters = filters
         self.__nb_classes = nb_classes
         self.__deep_supervision = deep_supervision
+        self.__smooth = 1. # Used to prevent the denominator from 0 when computing the DICE coefficient.
     
     def BuildNetwork(self):
 
@@ -144,7 +147,7 @@ class UNetPlusPlus():
         else:
             output = [nested_op_4]
 
-        model = Model(inputs = input_img, outputs = output, name = "UNet++")
+        model = Model(inputs = input_img, outputs = output, name = "UNetPP")
 
         return model
 
@@ -208,6 +211,85 @@ class UNetPlusPlus():
 
         return x
     
+    # WARNING:tensorflow:AutoGraph could not transform <bound method UNetPlusPlus.__dice_coef_loss of 
+    # <UNetPP.UNetPlusPlus object at 0x000001A33B0D8198>> and will run it as-is.
+    # Cause: mangled names are not yet supported. To silence this warning, decorate the function with 
+    # @tf.autograph.experimental.do_not_convert
+    @tf.autograph.experimental.do_not_convert
+    def __dice_coef(self, y_true, y_pred):
+        
+        """
+        computes the dice loss. loss function for image segmentation 
+        tasks is based on the Dice coefficient, which is essentially 
+        a measure of overlap between two samples. This measure ranges 
+        from 0 to 1 where a Dice coefficient of 1 denotes perfect and 
+        complete overlap.
+        
+        Args:
+            y_true: the true value of the image mask.
+            y_pred: the predicted value of the image mask.
+        
+        Returns:
+            dice_val: the dice loss value
+            
+        Ref:
+            https://www.programmersought.com/article/11533881518/
+            
+        """
+        
+        y_true_f = K.flatten(y_true) # Extend y_true to one dimension.
+        y_pred_f = K.flatten(y_pred)
+        intersection = K.sum(y_true_f * y_pred_f)
+        return (2. * intersection + self.__smooth) / (K.sum(y_true_f * y_true_f) + K.sum(y_pred_f * y_pred_f) + self.__smooth)
+    
+    @tf.autograph.experimental.do_not_convert
+    def __dice_coef_loss(self, y_true, y_pred):
+        
+        """
+        computes the dice loss. loss function for image segmentation 
+        tasks is based on the Dice coefficient, which is essentially 
+        a measure of overlap between two samples. This measure ranges 
+        from 0 to 1 where a Dice coefficient of 1 denotes perfect and 
+        complete overlap.
+        
+        Args:
+            y_true: the true value of the image mask.
+            y_pred: the predicted value of the image mask.
+        
+        Returns:
+            dice_val: the dice loss value
+            
+        Ref:
+            https://www.programmersought.com/article/11533881518/
+            
+        """
+        
+        return 1. - self.__dice_coef(y_true, y_pred)
+    
+    
+    @tf.autograph.experimental.do_not_convert
+    def __iou_loss_core(self, y_true, y_pred):
+        
+        """
+        computes the intersection over union metric. 
+        Intersection over Union is an evaluation metric 
+        used to measure the accuracy of an object/mask detected. 
+        
+        Args:
+            y_true: the true value of the image mask.
+            y_pred: the predicted value of the image mask.
+            smooth: 
+        
+        Returns:
+            iou: the iou coefficient.
+            
+        """
+        intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
+        union = K.sum(y_true,-1) + K.sum(y_pred,-1) - intersection
+        iou = (intersection + self.__smooth) / ( union + self.__smooth)
+        
+        return iou
+    
     def CompileAndSummarizeModel(self, model, optimizer = "adam", loss = "binary_crossentropy"):
 
         """
@@ -222,7 +304,10 @@ class UNetPlusPlus():
             None
 
         """
-        model.compile(optimizer = optimizer, loss = loss, metrics = ["acc"])
+        model.compile(optimizer = optimizer, 
+                      loss = self.__dice_coef_loss, 
+                      metrics = ['acc', self.__iou_loss_core])
+        
         model.summary()
 
     def plotModel(self, model, to_file = 'unetpp.png', show_shapes = True, dpi = 96):
