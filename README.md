@@ -41,6 +41,8 @@ For this task, early stopping was not considered.
 2. Brain Tumor Segmentation - 
     - Notebook @ https://github.com/sauravmishra1710/UNet-Plus-Plus---Brain-Tumor-Segmentation/blob/main/BrainTumorSegmentation.ipynb
 
+3. Documentation @ https://github.com/sauravmishra1710/UNet-Plus-Plus---Brain-Tumor-Segmentation/blob/main/UNetPlusPlus.pdf
+
 ### Segmentation Results
 The image below shows the segmentation results from some of the images from the test set.
 
