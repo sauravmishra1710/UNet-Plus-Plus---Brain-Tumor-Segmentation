@@ -10,13 +10,13 @@ UNet and FCNs have attained the state-of-the-art status in the field of medical 
 1.	The network depth could vary from task to task largely attributed to the amount of the data available and the complexity of the segmentation task.
 2.	The design of skip connections employed is very much restrictive, such that it expects encoder and decoder feature maps to be fused be at the same scale.
 
-The evolution goes through 3 different architectural phases with each phase improving he limitations of the previous one. The three different phases are  - 
+The evolution goes through 3 different architectural phases with each phase improving the limitations of the previous one. The three different phases are  - 
 1.	Ensemble UNets
 2.	UNet+
 3.	UNet++
 
 ## Architecture
-***“UNet++ is constructed from U-Nete by connecting the decoders, resulting in densely connected skip connections, enabling dense feature propagation along skip connections and thus more flexible feature fusion at the decoder nodes. As a result, each node in the UNet++ decoders, from a horizontal perspective, combines multiscale features from its all preceding nodes at the same resolution, and from a vertical perspective, integrates multiscale features across different resolutions from its preceding node. This multiscale feature aggregation of UNet++ gradually synthesizes the segmentation, leading to increased accuracy and faster convergence.”***
+***“UNet++ is constructed from U-Nets by connecting the decoders, resulting in densely connected skip connections, enabling dense feature propagation along skip connections and thus more flexible feature fusion at the decoder nodes. As a result, each node in the UNet++ decoders, from a horizontal perspective, combines multiscale features from its all preceding nodes at the same resolution, and from a vertical perspective, integrates multiscale features across different resolutions from its preceding node. This multiscale feature aggregation of UNet++ gradually synthesizes the segmentation, leading to increased accuracy and faster convergence.”***
 
 ![UNet++ Architecture](https://github.com/sauravmishra1710/UNet-Plus-Plus---Brain-Tumor-Segmentation/blob/main/images/nested_unet_architecture.PNG)
 
